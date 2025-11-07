@@ -33,11 +33,11 @@ let replaceFraction = 0.2;
 let tournamentK = 3;
 let tabooThreshold = 2;
 let tabooDuration = 6;
-let tabooMap = {}; // global taboo map: "i_j" -> age
+let tabooMap = {};
 
 // ==================== SETUP =======================
 function setup() {
-  createCanvas(1000, 600);
+  createCanvas(1280, 720);
   textAlign(LEFT, TOP);
   textSize(16);
   setupSidebar();
@@ -71,7 +71,7 @@ function setupSidebar() {
   blockSizeInput = createInput("20");
   blockSizeInput.position(25, 160);
   blockSizeInput.size(60);
-  createLabel("Block", 100, 160);
+  createLabel("Block Size", 100, 160);
 
   genMazeButton = createButton("Generate Maze");
   genMazeButton.position(25, 200);
@@ -92,7 +92,7 @@ function drawSidebar() {
   if (state === "menu" && walls.length > 0) {
     let infoY = 280;
     textSize(14);
-    fill(180);
+    fill("#FFFFFF");
     if (!startPoint) text("Click to set START", 20, infoY);
     else if (!endPoint) text("Click to set END", 20, infoY);
     else {
@@ -120,7 +120,7 @@ function drawSidebar() {
 function createLabel(txt, x, y, title = false) {
   let label = createP(txt);
   label.position(x, y - 15);
-  label.style("color", title ? "#fff" : "#ccc");
+  label.style("color", title ? "#fff" : "#FFFFFF");
   label.style("font-size", title ? "18px" : "14px");
 }
 
@@ -148,6 +148,7 @@ function drawMaze() {
   }
 }
 
+// ✅ UPDATED mousePressed with re-select support
 function mousePressed() {
   if (state !== "menu" || walls.length === 0) return;
   const origin = mazeOrigin();
@@ -160,8 +161,30 @@ function mousePressed() {
   if (j < 0 || i < 0 || j >= walls.length || i >= walls[0].length) return;
   if (walls[j][i]) return;
 
-  if (!startPoint) startPoint = { i, j };
-  else if (!endPoint) endPoint = { i, j };
+  // Click on existing start → remove
+  if (startPoint && i === startPoint.i && j === startPoint.j) {
+    startPoint = null;
+    return;
+  }
+
+  // Click on existing end → remove
+  if (endPoint && i === endPoint.i && j === endPoint.j) {
+    endPoint = null;
+    return;
+  }
+
+  // Normal placement
+  if (!startPoint) {
+    startPoint = { i, j };
+  } else if (!endPoint) {
+    endPoint = { i, j };
+  } else {
+    // Both exist, move whichever is closer
+    let ds = dist(i, j, startPoint.i, startPoint.j);
+    let de = dist(i, j, endPoint.i, endPoint.j);
+    if (ds <= de) startPoint = { i, j };
+    else endPoint = { i, j };
+  }
 }
 
 function generateMaze(cols, rows, size) {
@@ -244,6 +267,7 @@ function setupGAMenu() {
   startGAButton.position(25, 260);
   startGAButton.mousePressed(startGA);
 }
+
 
 // ==================== GA CORE =======================
 function startGA() {
