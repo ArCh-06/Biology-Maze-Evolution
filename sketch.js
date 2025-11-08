@@ -7,6 +7,8 @@ let simulationFrozen = false;
 // Sidebar UI
 let genMazeButton, widthInput, heightInput, blockSizeInput, confirmButton;
 let popInput, mutationInput, crossoverInput, maxGeneInput, startGAButton;
+let backButton;
+let simSpeedInput;
 
 const sidebarWidth = 250;
 let blockSize = 20;
@@ -22,7 +24,7 @@ let agentIndex = 0;
 let simSpeed = 100;
 let bestAgent = null;
 
-// new: trails
+// trails
 let activeTrail = [];
 let permanentTrails = [];
 
@@ -93,15 +95,31 @@ function drawSidebar() {
     let infoY = 280;
     textSize(14);
     fill("#FFFFFF");
-    if (!startPoint) text("Click to set START", 20, infoY);
-    else if (!endPoint) text("Click to set END", 20, infoY);
+
+    if (!startPoint) {
+      text("Click to set START", 20, infoY);
+    }
+    else if (!endPoint) {
+      text("Click to set END", 20, infoY);
+    }
     else {
       text(`Start: (${startPoint.i},${startPoint.j})`, 20, infoY);
       text(`End: (${endPoint.i},${endPoint.j})`, 20, infoY + 20);
+
+      // sim speed input
+      if (!simSpeedInput) {
+        simSpeedInput = createInput("" + simSpeed);
+        simSpeedInput.position(25, infoY + 60);
+        simSpeedInput.size(80);
+        createLabel("Sim Speed (ms)", 120, infoY + 60);
+      }
+
+      // confirm
       if (!confirmButton) {
         confirmButton = createButton("CONFIRM");
-        confirmButton.position(25, infoY + 60);
+        confirmButton.position(25, infoY + 100);
         confirmButton.mousePressed(() => {
+          simSpeed = int(simSpeedInput.value());
           setupGAMenu();
         });
       }
@@ -148,7 +166,7 @@ function drawMaze() {
   }
 }
 
-// ✅ UPDATED mousePressed with re-select support
+// ==================== CLICK START/END =======================
 function mousePressed() {
   if (state !== "menu" || walls.length === 0) return;
   const origin = mazeOrigin();
@@ -161,25 +179,19 @@ function mousePressed() {
   if (j < 0 || i < 0 || j >= walls.length || i >= walls[0].length) return;
   if (walls[j][i]) return;
 
-  // Click on existing start → remove
   if (startPoint && i === startPoint.i && j === startPoint.j) {
     startPoint = null;
     return;
   }
 
-  // Click on existing end → remove
   if (endPoint && i === endPoint.i && j === endPoint.j) {
     endPoint = null;
     return;
   }
 
-  // Normal placement
-  if (!startPoint) {
-    startPoint = { i, j };
-  } else if (!endPoint) {
-    endPoint = { i, j };
-  } else {
-    // Both exist, move whichever is closer
+  if (!startPoint) startPoint = { i, j };
+  else if (!endPoint) endPoint = { i, j };
+  else {
     let ds = dist(i, j, startPoint.i, startPoint.j);
     let de = dist(i, j, endPoint.i, endPoint.j);
     if (ds <= de) startPoint = { i, j };
@@ -187,6 +199,7 @@ function mousePressed() {
   }
 }
 
+// ==================== MAZE GEN =======================
 function generateMaze(cols, rows, size) {
   if (cols % 2 === 0) cols++;
   if (rows % 2 === 0) rows++;
@@ -232,7 +245,10 @@ function generateMaze(cols, rows, size) {
   startPoint = null;
   endPoint = null;
   tabooMap = {};
+
   if (confirmButton) { confirmButton.remove(); confirmButton = null; }
+  if (simSpeedInput) { simSpeedInput.remove(); simSpeedInput = null; }
+
   console.log("Maze generated:", cols, rows);
 }
 
@@ -266,6 +282,17 @@ function setupGAMenu() {
   startGAButton = createButton("START GA");
   startGAButton.position(25, 260);
   startGAButton.mousePressed(startGA);
+
+  // BACK BUTTON (fixed)
+  backButton = createButton("BACK");
+  backButton.position(25, 310);
+  backButton.mousePressed(() => {
+    state = "menu";
+    // reset UI so confirm/speed reappear
+    if (confirmButton) { confirmButton.remove(); confirmButton = null; }
+    if (simSpeedInput) { simSpeedInput.remove(); simSpeedInput = null; }
+    setupSidebar();
+  });
 }
 
 
